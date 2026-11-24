@@ -1,0 +1,241 @@
+<header>
+  <div>
+    <h1>Mini Kanban Board</h1>
+    <p>Система управления задачами</p>
+  </div>
+  <span class="counter">{{ tasks().length }} задач</span>
+</header>
+
+<main>
+
+  @if (error()) {
+  <div class="error">{{ error() }}</div>
+  }
+
+  @if (busy()) {
+  <p>Выполняется запрос...</p>
+  }
+
+  <section class="panel">
+
+    <h2>
+      {{
+ editingTaskId === null
+        ? 'Новая задача' : 'Редактирование задачи'
+      }}
+    </h2>
+
+    <form #tf="ngForm" (ngSubmit)="saveTask()">
+
+      <div class="form-grid">
+
+        <label>
+          Название
+          <input name="title"
+                 [(ngModel)]="taskForm.title"
+                 required maxlength="200">
+        </label>
+
+        <label>
+          Статус
+          <select name="status"
+                  [(ngModel)]="taskForm.status">
+            @for (status of statuses; track status) {
+            <option [ngValue]="status">
+              {{ status }}
+            </option>
+            }
+          </select>
+        </label>
+
+        <label>
+          Исполнитель
+          <select name="assignee"
+                  [(ngModel)]="taskForm.assigneeId">
+            <option [ngValue]="null">Не назначен</option>
+            @for (user of users(); track user.id) {
+            <option [ngValue]="user.id">
+              {{ user.name }}
+            </option>
+            }
+          </select>
+        </label>
+
+      </div>
+
+      <label>
+        Описание
+        <textarea name="description"
+                  [(ngModel)]="taskForm.description">
+        </textarea>
+      </label>
+
+      <button type="submit"
+              [disabled]="tf.invalid || busy()">
+        {{
+ editingTaskId === null
+          ? 'Создать задачу' : 'Сохранить'
+        }}
+      </button>
+
+      @if (editingTaskId !== null) {
+      <button type="button" class="secondary"
+              (click)="resetTask()">
+        Отмена
+      </button>
+      }
+
+    </form>
+  </section>
+
+  <div class="toolbar">
+    <h2>Доска задач</h2>
+
+    <select [ngModel]="filterId"
+            [disabled]="busy()"
+            (ngModelChange)="changeFilter($event)">
+      <option [ngValue]="null">
+        Все исполнители
+      </option>
+
+      @for (user of users(); track user.id) {
+      <option [ngValue]="user.id">
+        {{ user.name }}
+      </option>
+      }
+    </select>
+  </div>
+
+  <div class="board">
+
+    @for (status of statuses; track status) {
+
+    <section class="column"
+             [class.progress]="status === 'In Progress'"
+             [class.done]="status === 'Done'">
+
+      <div class="column-title">
+        <h3>{{ status }}</h3>
+        <span>{{ tasksByStatus(status).length }}</span>
+      </div>
+
+      @for (task of tasksByStatus(status); track task.id) {
+
+      <article class="task">
+
+        <h3>{{ task.title }}</h3>
+        <p>{{ task.description }}</p>
+
+        <div class="assignee">
+          {{ assigneeName(task.assigneeId) }}
+        </div>
+
+        <select [ngModel]="task.status"
+                [disabled]="busy()"
+                (ngModelChange)="changeStatus(task, $event)">
+          @for (s of statuses; track s) {
+          <option [ngValue]="s">{{ s }}</option>
+          }
+        </select>
+
+        <div class="actions">
+          <button class="secondary"
+                  [disabled]="busy()"
+                  (click)="editTask(task)">
+            Изменить
+          </button>
+
+          <button class="danger"
+                  [disabled]="busy()"
+                  (click)="deleteTask(task.id)">
+            Удалить
+          </button>
+        </div>
+
+      </article>
+
+      } @empty {
+      <p class="empty">Нет задач</p>
+      }
+
+    </section>
+
+    }
+
+  </div>
+
+  <section class="panel">
+
+    <h2>Управление пользователями</h2>
+
+    <form #uf="ngForm" (ngSubmit)="saveUser()">
+
+      <div class="form-grid">
+        <label>
+          Имя
+          <input name="name"
+                 [(ngModel)]="userForm.name"
+                 required maxlength="100">
+        </label>
+
+        <label>
+          Email
+          <input name="email" type="email"
+                 [(ngModel)]="userForm.email"
+                 required email maxlength="254">
+        </label>
+      </div>
+
+      <button type="submit"
+              [disabled]="uf.invalid || busy()">
+        {{
+ editingUserId === null
+          ? 'Добавить пользователя' : 'Сохранить'
+        }}
+      </button>
+
+      @if (editingUserId !== null) {
+      <button type="button" class="secondary"
+              (click)="resetUser()">
+        Отмена
+      </button>
+      }
+
+    </form>
+
+    <div class="user-list">
+
+      @for (user of users(); track user.id) {
+
+      <div class="user-row">
+
+        <div>
+          <strong>{{ user.name }}</strong>
+          <p>{{ user.email }}</p>
+        </div>
+
+        <div class="actions">
+          <button class="secondary"
+                  [disabled]="busy()"
+                  (click)="editUser(user)">
+            Изменить
+          </button>
+
+          <button class="danger"
+                  [disabled]="busy()"
+                  (click)="deleteUser(user.id)">
+            Удалить
+          </button>
+        </div>
+
+      </div>
+
+      } @empty {
+      <p class="empty">Нет пользователей</p>
+      }
+
+    </div>
+
+  </section>
+
+</main>
